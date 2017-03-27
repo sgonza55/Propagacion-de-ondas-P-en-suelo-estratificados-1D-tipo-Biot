@@ -49,17 +49,5 @@ for i in range (0,n):
         tempant=temp1
         l=l+1
 MatP[j+l-1,k+l-1]=MatPlocal[i,j,k]
-#print MatP
-#------------------------------------------------------------------------------
-#Aplicar condiciones de forntera
+print MatP
 
-CoFr = np.zeros(r)
-LE=float(input("Digite energia a gastar "))
-CoFr[0]= float(input("Digite energia en z=0: "))
-CoFr[r-1]= LE
-s=0
-t=r-11
-for i in range (1,t):
-    CoFr[i]=(1+s)
-    s=s+1
-print CoFr
