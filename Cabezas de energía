@@ -1,0 +1,28 @@
+H = np.zeros(r)
+LE=float(input("Digite energia a gastar, es decir, energia en z=l "))
+H[0]= float(input("Digite energia en z=0: "))
+H[r-1]= LE
+print H
+
+X = Symbol('X')
+
+velq = np.zeros(r)
+for i in range(r):
+    sump = 0.0
+    res= 0.0
+    for j in range(r):
+        if (H[j]==0):
+            sump = sump + MatP[i,j]*X
+            solve ([sump + ((MatP[i,j])* X)],[X])
+            
+        velq[i] = sump
+        if ((j==0 and i==0) or (j==r and i==r)):
+            res= res + MatP[i,j] * H[j]
+            
+        
+        velq[i] = sump
+        
+        
+print solve
+        
+print("El vector de velocidad de Darcy del es sistema : ", velq )    
