@@ -1,4 +1,4 @@
-#Matrices locales de permeabilidad
+#Matrices locales de permeabilidad.
 import numpy as np
 
 n = int(input("Digite numero de estratos: ")) #Numero de estratos
