@@ -1,0 +1,38 @@
+#Se debe instalar ffmpeg para que funcione.
+
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib import animation
+
+# First set up the figure, the axis, and the plot element we want to animate
+fig = plt.figure()
+ax = plt.axes(xlim=(200, 200), ylim=(-200, 200))
+line, = ax.plot([], [], lw=2)
+
+# initialization function: plot the background of each frame
+def init():
+    line.set_data([], [])
+    return line,
+
+# animation function.  This is called sequentially
+# Esfuerzo es igual a y
+
+P=600
+A=30
+E=1000000
+den=500
+V=(E/den)**(1/2)
+
+def animate(i):
+    x = np.linspace(100, 100, 1000)
+    y = -(P/A)*np.sin((np.pi/84)*((V*i)-x))
+    line.set_data(x, y)
+    return line,
+
+anim = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=200, interval=20, blit=True)
+
+
+anim.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+
+plt.show()
