@@ -1,0 +1,168 @@
+#Matrices de masa, amortiguamiento y rigidez
+
+import numpy as np
+
+n = int(input("Digite numero de estratos: ")) #Numero de estratos
+r=n+1
+
+#Matrices locales de masa
+
+MatMlocal = np.zeros((n,2,2))#Matriz de masa local
+MatPlocal = np.zeros((n,2,2))#Matrices locales de rigidez
+
+g=9.8#m/s^2
+rho=18000/g
+Vp=100#m/s
+
+for i in range (n):
+    l=float(input("Digite longitud del estrato:"))
+    mv=(1/(rho*(Vp**2)))
+    krig=(1/(mv*l))
+    for j in range (2):
+        for k in range (2):
+                if (j == k): 
+                    MatPlocal[i,j,k]= krig
+                else:
+                    MatPlocal[i,j,k]= -krig
+
+for i in range (n):
+    l=float(input("Digite longitud del estrato:"))
+    mv=(1/(rho*(Vp**2)))
+    coef=rho/l
+    for j in range (2):
+        for k in range (2):
+                if (j == k): 
+                    MatMlocal[i,j,k]= coef
+                else:
+                    MatMlocal[i,j,k]= coef
+                             
+#print (MatMlocal)
+#print (MatPlocal)
+
+#---------------------------------------------------------------------------
+#Ensamlbe general
+MatM = np.zeros((r,r))
+l=0
+jant=0
+kant=0
+tempant=0
+for i in range (0,n): 
+    for j in range (0,2):
+        for k in range(0,2):
+            if (j==k):
+                temp1= MatMlocal[i,j,k]
+                if (jant==j+l and kant==k+l):
+                    MatM[j+l,k+l]=temp1+tempant
+            else:
+                temp2= MatMlocal[i,j,k]
+                MatM[j+l,k+l]= temp2           
+    if (jant==0):
+        jant= jant+ j +l
+        kant= kant+k+l
+        tempant=temp1
+        l=l+1
+    elif (jant!=0):
+        jant=1+l
+        kant=1+l
+        tempant=temp1
+        l=l+1
+MatM[j+l-1,k+l-1]=MatMlocal[i,j,k]
+print ("Matriz de masa",MatM)
+#-----------------------------------------------------------------------------
+#Ensamlbe general de rigidez
+MatP = np.zeros((r,r))
+l=0
+jant=0
+kant=0
+tempant=0
+for i in range (0,n): 
+    for j in range (0,2):
+        for k in range(0,2):
+            if (j==k):
+                temp1= MatPlocal[i,j,k]
+                if (jant==j+l and kant==k+l):
+                    MatP[j+l,k+l]=temp1+tempant
+            else:
+                temp2= MatPlocal[i,j,k]
+                MatP[j+l,k+l]= temp2           
+    if (jant==0):
+        jant= jant+ j +l
+        kant= kant+k+l
+        tempant=temp1
+        l=l+1
+    elif (jant!=0):
+        jant=1+l
+        kant=1+l
+        tempant=temp1
+        l=l+1
+MatP[j+l-1,k+l-1]=MatPlocal[i,j,k]
+print ("Matriz de rigidez" , MatP)
+
+#----------------------------------------------------------------------------
+#Matriz de amortiguamiento
+
+MatC=np.zeros((r,r))
+delta=float(input("Digite amortiguacion al final del sistema:"))
+for i in range (r):
+    for j in range (r):
+        if (i==r-1):
+            if (j==r-1):
+                MatC[i,j]= delta
+  
+print ("Matriz de amortiguamiento",MatC)
+
+#------------------------------------------------------------------------------
+#Inicilizar vectores de desplazmiento, de velocidad y aceleracion
+U=np.zeros(r)
+print ("Vector inicial de desplazamiento es:",U)
+
+UVel=np.zeros(r)
+print ("Vector inicial de velocidad es:", UVel)
+
+UAce=np.zeros(r)
+print ("Vector inicial de aceleracion es:", UAce)
+
+#Constantes del metodo de integracion
+beta=float(input("Digite constante beta para el metodo de integracion:"))
+if (beta >= 0.5): 
+    alfa=0.25*((0.5+beta)**2)
+    print ("beta vale:",beta)
+    print ("alfa vale:",alfa)
+else:
+    print ("No se puede ejecutar la integracion, beta supera el rango")
+    
+# animation function.  This is called sequentially
+den =rho
+E = int(input("Digite el modulo: ")) #Modulo de elasticidad
+fc = 4
+Ts = 1
+Vs = Vp
+Udel=0
+UAcedel=0
+UVeldel=0
+for delt in range (2.001,1,0.001):
+    z=14
+    fuerza=np.zeros(r)
+    y= (((2*((np.pi*fc)**2)*(((delt-z)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt-z)/(Vs-Ts))**2))) 
+    fuerza[0] = y
+    print (fuerza)
+    #Constantes de integracion
+    a0= 1/(alfa*((delt)**2))
+    a1=beta/(alfa*delt)
+    a2=1/(alfa*delt)
+    a3=(1/((2*alfa)))-1
+    a4= (beta/alfa)-1
+    a5=(delt/2)*((beta/alfa)-2)
+    a6= delt*(1-beta)
+    a7=beta*delt
+    # Matriz de rigidez efectiva
+    Keff= [MatP+(a0*MatM)+(a1*MatC)]
+    print ("Matriz de rigidez efectiva", Keff, "en el tiempo:" , delt)
+    #Matriz de fuerza efectiva
+    Feff=fuerza [0] + ((MatM*((a0*U)+(a2*UVel))+((a3*UAce)+MatC*((a1*U)+(a4*UVel)+(a5*UAce)))))
+    Udel=Udel + Feff/Keff
+    UAcedel=UAcedel+((a0*(Udel-U))-(a2*UVel)-(a3*UAce))
+    UVeldel=UVeldel + UVel+(a6*UAce)+(a7*UAcedel)
+    U=Udel
+    UVel=UVeldel
+    UAce=UAcedel
