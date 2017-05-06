@@ -1,8 +1,11 @@
 #Matrices de masa, amortiguamiento y rigidez
-
 import numpy as np
 
 n = int(input("Digite numero de estratos: ")) #Numero de estratos
+
+if (n<5):
+    print ("No se puede usar el programa")
+
 r=n+1
 
 #Matrices locales de masa
@@ -10,34 +13,68 @@ r=n+1
 MatMlocal = np.zeros((n,2,2))#Matriz de masa local
 MatPlocal = np.zeros((n,2,2))#Matrices locales de rigidez
 
-g=9.8#m/s^2
+g=9.81#m/s^2
 rho=18000/g
 Vp=100#m/s
 
-for i in range (n):
-    l=float(input("Digite longitud del estrato:"))
-    mv=(1/(rho*(Vp**2)))
-    krig=(1/(mv*l))
-    for j in range (2):
-        for k in range (2):
-                if (j == k): 
-                    MatPlocal[i,j,k]= krig
-                else:
-                    MatPlocal[i,j,k]= -krig
+H=0.0
+LongElastico=0.0
+cont=0.0
 
 for i in range (n):
-    l=float(input("Digite longitud del estrato:"))
-    mv=(1/(rho*(Vp**2)))
-    coef=rho/l
-    for j in range (2):
-        for k in range (2):
-                if (j == k): 
-                    MatMlocal[i,j,k]= coef
-                else:
-                    MatMlocal[i,j,k]= coef
-                             
+    if (i<(n-4)):
+        l=float(input("Digite longitud del estrato:"))
+        H=H+l
+        mv=(1/(rho*(Vp**2)))
+        krig=(1/(mv*l))
+        coef=rho*l
+        for j in range (2):
+            for k in range (2):
+                    if (j == k): 
+                        MatPlocal[i,j,k]= krig
+                        MatMlocal[i,j,k]= coef/3
+                    else:
+                        MatPlocal[i,j,k]= -krig
+                        MatMlocal[i,j,k]= coef/6
+        mvarr=mv
+    else:
+        if (cont==0):
+            cont=cont+1
+            l=float(input("Digite longitud del estrato:"))
+            le=l
+            LongElastico= LongElastico + l
+            mv=(1/(rho*(Vp**2)))
+            krig=(1/(mv*l))
+            coef=rho*l
+            for j in range (2):
+                for k in range (2):
+                        if (j == k): 
+                            MatPlocal[i,j,k]= krig
+                            MatMlocal[i,j,k]= coef/3
+                        else:
+                            MatPlocal[i,j,k]= -krig
+                            MatMlocal[i,j,k]= coef/6
+            mvaba=mv
+        else:
+            l=float(input("Digite longitud del estrato:"))
+            LongElastico= LongElastico + l
+            mv=(1/(rho*(Vp**2)))
+            krig=(1/(mv*l))
+            coef=rho*l
+            for j in range (2):
+                for k in range (2):
+                        if (j == k): 
+                            MatPlocal[i,j,k]= krig
+                            MatMlocal[i,j,k]= coef/3
+                        else:
+                            MatPlocal[i,j,k]= -krig
+                            MatMlocal[i,j,k]= coef/6
+            
+        
 #print (MatMlocal)
 #print (MatPlocal)
+print ("La longitud total del suelo saturado es:", H)
+print ("La longitud total del suelo elastico es:", LongElastico)
 
 #---------------------------------------------------------------------------
 #Ensamlbe general
@@ -102,7 +139,7 @@ print ("Matriz de rigidez" , MatP)
 #Matriz de amortiguamiento
 
 MatC=np.zeros((r,r))
-delta=float(input("Digite amortiguacion al final del sistema:"))
+delta=rho*Vp
 for i in range (r):
     for j in range (r):
         if (i==r-1):
@@ -110,59 +147,98 @@ for i in range (r):
                 MatC[i,j]= delta
   
 print ("Matriz de amortiguamiento",MatC)
-
 #------------------------------------------------------------------------------
-#Inicilizar vectores de desplazmiento, de velocidad y aceleracion
-U=np.zeros(r)
-print ("Vector inicial de desplazamiento es:",U)
-
-UVel=np.zeros(r)
-print ("Vector inicial de velocidad es:", UVel)
-
-UAce=np.zeros(r)
-print ("Vector inicial de aceleracion es:", UAce)
-
 #Constantes del metodo de integracion
-beta=float(input("Digite constante beta para el metodo de integracion:"))
-if (beta >= 0.5): 
+beta=0.7
+if (beta >= 0.5):
     alfa=0.25*((0.5+beta)**2)
     print ("beta vale:",beta)
     print ("alfa vale:",alfa)
 else:
     print ("No se puede ejecutar la integracion, beta supera el rango")
-    
-# animation function.  This is called sequentially
+
 den =rho
-E = int(input("Digite el modulo: ")) #Modulo de elasticidad
 fc = 4
 Ts = 1
 Vs = Vp
-Udel=0
-UAcedel=0
-UVeldel=0
-for delt in range (2.001,1,0.001):
-    z=14
+alpha= ((np.pi*fc)/(Vs-Ts))**2
+print (alpha)
+
+#Inicilizar vectores de desplazmiento, de velocidad y aceleracion
+
+U1=np.zeros(r)
+UVel1=np.zeros(r)
+UAce1=np.zeros(r)
+
+#le es el valor de la longitud de ese estrato donde agg el valor de las fuerzas
+#Constantes de integracion
+
+delt=0.01
+
+a0= 1/(alfa*((delt)**2))
+a1=beta/(alfa*delt)
+a2=1/(alfa*delt)
+a3=(1/((2*alfa)))-1
+a4= (beta/alfa)-1
+a5=(delt/2)*((beta/alfa)-2)
+a6= delt*(1-beta)
+a7=beta*delt
+print (a0)
+print (a1)
+print (a2)
+print (a3)
+print (a4)
+print (a5)
+print (a6)
+print (a7)
+    
+delt=0
+
+for i in range (1000):
+    delt=delt + 0.01
     fuerza=np.zeros(r)
-    y= (((2*((np.pi*fc)**2)*(((delt-z)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt-z)/(Vs-Ts))**2))) 
-    fuerza[0] = y
-    print (fuerza)
-    #Constantes de integracion
-    a0= 1/(alfa*((delt)**2))
-    a1=beta/(alfa*delt)
-    a2=1/(alfa*delt)
-    a3=(1/((2*alfa)))-1
-    a4= (beta/alfa)-1
-    a5=(delt/2)*((beta/alfa)-2)
-    a6= delt*(1-beta)
-    a7=beta*delt
-    # Matriz de rigidez efectiva
-    Keff= [MatP+(a0*MatM)+(a1*MatC)]
-    print ("Matriz de rigidez efectiva", Keff, "en el tiempo:" , delt)
-    #Matriz de fuerza efectiva
-    Feff=fuerza [0] + ((MatM*((a0*U)+(a2*UVel))+((a3*UAce)+MatC*((a1*U)+(a4*UVel)+(a5*UAce)))))
-    Udel=Udel + Feff/Keff
-    UAcedel=UAcedel+((a0*(Udel-U))-(a2*UVel)-(a3*UAce))
-    UVeldel=UVeldel + UVel+(a6*UAce)+(a7*UAcedel)
-    U=Udel
-    UVel=UVeldel
-    UAce=UAcedel
+    ful=alpha**2
+    z1 = H
+    z2 = H+le
+#    col1=  ((2*(np.exp(-(ful*(delt-z1)**2))))*((-8*ful*(delt**2))+(8*ful*delt*z1)-(4*ful*(delt**2))+(16*ful*delt*z1)-(12*ful*(z1**2))+(6*alpha)))
+#    col2=  ((4*ful*(delt**3))-(8*ful*z1*(delt**2))+(4*ful*delt*(z1**2))-(6*alpha*delt)-(4*ful*z1*(delt**2))+(8*ful*(z1**2)*delt)-(4*ful*(z1**3))+(6*alpha*z1))
+#    DerRicker1= col1 +col2
+    crt= ((2*((np.pi*fc)**2)*(((delt+z1)/(Vs-Ts))**2))-1)*(np.exp(-(((np.pi*fc)**2)*(((delt+z1)/(Vs-Ts))**2))))
+    y1 = (((2*((np.pi*fc)**2)*(((delt-z1)/(Vs-Ts))**2))-1)*(np.exp(-(((np.pi*fc)**2)*(((delt-z1)/(Vs-Ts))**2)))) + crt ) * (1/(mvaba*le))
+    #+(((rho*le)/6)*DerRicker1)
+#    colt1= (2*(np.exp(-(ful*(delt-z2)**2))))*((-8*ful*(delt**2))+(8*ful*delt*z2)-(4*ful*(delt**2))+(16*ful*delt*z2)-(12*ful*(z2**2))+(6*alpha))
+#    colt2= ((4*ful*(delt**3))-(8*ful*z2*(delt**2))+(4*ful*delt*(z2**2))-(6*alpha*delt)-(4*ful*z2*(delt**2))+(8*ful*(z2**2)*delt)-(4*ful*(z2**3))+(6*alpha*z2)) 
+#    DerRicker2= colt1 + colt2 
+    crt2= ((2*((np.pi*fc)**2)*(((delt+z2)/(Vs-Ts))**2))-1)*(np.exp(-(((np.pi*fc)**2)*(((delt+z2)/(Vs-Ts))**2))))
+    y2 = (((2*((np.pi*fc)**2)*(((delt-z2)/(Vs-Ts))**2))-1)*(np.exp(-(((np.pi*fc)**2)*(((delt-z2)/(Vs-Ts))**2)))) + crt2) *(-1/(mvaba*le))
+    #-(((rho*le)/6)*DerRicker2)
+    fuerza[r-5] = y2
+    fuerza[r-4] = y1
+    print (y1)
+    print (y2)
+    print (fuerza)   
+        
+# Matriz de rigidez efectiva
+    per1= (a0*MatM)
+    per2= (a1*MatC)
+    Keff= MatP + per1 + per2
+    print (Keff)
+    
+#Matriz de fuerza efectiva de los nodos r-5 y r-4
+    sum11= (a0*U1)+(a2*UVel1)+(a3*UAce1)
+    sum12= (a1*U1)+(a4*UVel1)+(a5*UAce1)
+
+    colt= (np.dot(MatM,sum11))
+    Feff1=fuerza  + colt + (np.dot(MatC, sum12))
+    print (Feff1)
+    
+    Kefft=np.linalg.inv(Keff)
+    Udel1= np.dot(Feff1,Kefft)
+    UAcedel1= ((a0*(Udel1-U1))-(a2*UVel1)-(a3*UAce1))
+    UVeldel1= UVel1+(a6*UAce1)+(a7*UAcedel1)
+
+    print (Udel1)
+
+    U1=Udel1
+    UVel1=UVeldel1
+    UAce1=UAcedel1
