@@ -1,5 +1,6 @@
 #Matrices de masa, amortiguamiento y rigidez
 import numpy as np
+import matplotlib.pyplot as plt
 
 n = int(input("Digite numero de estratos: ")) #Numero de estratos
 
@@ -13,7 +14,7 @@ r=n+1
 MatMlocal = np.zeros((n,2,2))#Matriz de masa local
 MatPlocal = np.zeros((n,2,2))#Matrices locales de rigidez
 
-g=9.8#m/s^2
+g=9.81#m/s^2
 rho=18000/g
 Vp=100#m/s
 
@@ -162,77 +163,80 @@ fc = 4
 Ts = 1
 Vs = Vp
 alpha= ((np.pi*fc)/(Vs-Ts))**2
+Iter=int(input("Digite numero de iteraciones: "))
 
 #Inicilizar vectores de desplazmiento, de velocidad y aceleracion
 
 U1=np.zeros(r)
 UVel1=np.zeros(r)
 UAce1=np.zeros(r)
-U2=np.zeros(r)
-UVel2=np.zeros(r)
-UAce2=np.zeros(r)
-
-
+Uprim=np.zeros(Iter)
+deltacum=np.zeros(Iter)
+y2acum=np.zeros(Iter)
 #le es el valor de la longitud de ese estrato donde agg el valor de las fuerzas
+#Constantes de integracion
 
+delt=0.01
+
+a0= 1/(alfa*((delt)**2))
+a1=beta/(alfa*delt)
+a2=1/(alfa*delt)
+a3=(1/((2*alfa)))-1
+a4= (beta/alfa)-1
+a5=(delt/2)*((beta/alfa)-2)
+a6= delt*(1-beta)
+a7=beta*delt
+
+# Matriz de rigidez efectiva
+per1= (a0*MatM)
+per2= (a1*MatC)
+Keff= MatP + per1 + per2
+        
 delt=0
-for i in range (10):
-    delt=delt + 0.1
+
+for i in range (Iter):
+    deltacum[i]=delt
     fuerza=np.zeros(r)
-    z1 = H+le
-    z2 = H
-    rest= z1
-    col1=((4*alpha)*(np.exp(-(alpha*-(rest**2)))))*((((2*alpha)*-rest)**2)-(2*alpha))
-    DerRicker1= ((4*alpha)*(np.exp(-(alpha*(rest**2)))))*((((2*alpha)*rest)**2)-(2*alpha))+col1
-    y1 = (((2*((np.pi*fc)**2)*(((z1)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((z1)/(Vs-Ts))**2))) + (((2*((np.pi*fc)**2)*(((-z1)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((-z1)/(Vs-Ts))**2)))*(1/(mvarr*le))-(((rho*le)/6)*DerRicker1)
-    rest= z2
-    col2=((4*alpha)*(np.exp(-(alpha*-(rest**2)))))*((((2*alpha)*-rest)**2)-(2*alpha))
-    DerRicker2= ((4*alpha)*(np.exp(-(alpha*(rest**2)))))*((((2*alpha)*rest)**2)-(2*alpha))+col2     
-    y2 = (((2*((np.pi*fc)**2)*(((z2)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((z2)/(Vs-Ts))**2))) + (((2*((np.pi*fc)**2)*(((-z2)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((-z2)/(Vs-Ts))**2)))*(1/(mvaba*le))+(((rho*le)/6)* DerRicker2)
+    ful=alpha**2
+    z1 = H
+    z2 = H+le
+#   col1=  ((2*(np.exp(-(ful*(delt-z1)**2))))*((-8*ful*(delt**2))+(8*ful*delt*z1)-(4*ful*(delt**2))+(16*ful*delt*z1)-(12*ful*(z1**2))+(6*alpha)))
+#   col2=  ((4*ful*(delt**3))-(8*ful*z1*(delt**2))+(4*ful*delt*(z1**2))-(6*alpha*delt)-(4*ful*z1*(delt**2))+(8*ful*(z1**2)*delt)-(4*ful*(z1**3))+(6*alpha*z1))
+#   DerRicker1= col1 +col2
+    y2= ((((2*((np.pi*fc)**2)*(((delt-z1)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt-z1)/(Vs-Ts))**2))) + (((2*((np.pi*fc)**2)*(((delt+z1)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt+z1)/(Vs-Ts))**2)))) * ( 1/(mvaba*le))
+    y1= ((((2*((np.pi*fc)**2)*(((delt-z2)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt-z2)/(Vs-Ts))**2))) + (((2*((np.pi*fc)**2)*(((delt+z2)/(Vs-Ts))**2))-1))*(np.exp(-((np.pi*fc)**2)*(((delt+z2)/(Vs-Ts))**2)))) * (-1/(mvaba*le))
+    #-(((rho*le)/6)*DerRicker2)
     fuerza[r-5] = y2
     fuerza[r-4] = y1
-          
-#Constantes de integracion
-    a0= 1/(alfa*((delt)**2))
-    a1=beta/(alfa*delt)
-    a2=1/(alfa*delt)
-    a3=(1/((2*alfa)))-1
-    a4= (beta/alfa)-1
-    a5=(delt/2)*((beta/alfa)-2)
-    a6= delt*(1-beta)
-    a7=beta*delt
-    
-# Matriz de rigidez efectiva
-    per1= (a0*MatM)
-    per2= (a1*MatC)
-    Keff= MatP + per1 + per2
-    print ("Matriz de rigidez efectiva", Keff, "en el tiempo:" , delt, "segundos")
-    
+    y2acum[i]=y2
+        
 #Matriz de fuerza efectiva de los nodos r-5 y r-4
     sum11= (a0*U1)+(a2*UVel1)+(a3*UAce1)
     sum12= (a1*U1)+(a4*UVel1)+(a5*UAce1)
-    sum21= (a0*U2)+(a2*UVel2)+(a3*UAce2)
-    sum22= (a1*U2)+(a4*UVel2)+(a5*UAce2)
-    print (sum11)
+
+    colt = (np.dot(MatM, sum11))
+    colt2= (np.dot(MatC, sum12))
+    Feff1= fuerza + colt + colt2
     
-    colt= (np.dot(MatM,sum11))
-    Feff1=fuerza  + colt + (np.dot(MatC, sum12))
-    Feff2=fuerza  + (np.dot(MatM, sum21)) + (np.dot(MatC, sum22))
-    print (Feff1)
-    
-    Kefft=np.transpose(Keff)
+    Kefft=np.linalg.inv(Keff)
     Udel1= np.dot(Kefft,Feff1)
-    print (Udel1)
-    
-    Udel2= np.dot(Kefft,Feff2)
+    Uprim[i]=Udel1[0]
     UAcedel1= ((a0*(Udel1-U1))-(a2*UVel1)-(a3*UAce1))
-    UAcedel2= ((a0*(Udel2-U2))-(a2*UVel2)-(a3*UAce2))
-    UVeldel1= UVel2+(a6*UAce1)+(a7*UAcedel1)
-    UVeldel2= UVel2+(a6*UAce2)+(a7*UAcedel2)
-    
+    UVeldel1= UVel1+(a6*UAce1)+(a7*UAcedel1)
+
+
     U1=Udel1
     UVel1=UVeldel1
     UAce1=UAcedel1
-    U2=Udel2
-    UVel2=UVeldel2
-    UAce2=UAcedel2
+    delt=delt + 0.01
+
+uprim = open('uprim.txt', 'w')
+for i in range(1000):
+    uprim.write(" %f %f %f " % (Uprim[i],y2acum[i],deltacum[i]))
+    uprim.write("\n")    
+uprim.close()
+
+plt.figure()
+plt.plot(deltacum,Uprim)
+plt.show()
+    
