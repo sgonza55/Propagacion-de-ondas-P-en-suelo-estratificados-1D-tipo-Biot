@@ -1,4 +1,5 @@
 #%%#Librerias importadas necesarias para el codigo
+#plt.gca().invert_yaxis()
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -388,7 +389,7 @@ deltacum=np.zeros(Iter)
 U1=np.zeros(mat)
 UVel1=np.zeros(mat)
 UAce1=np.zeros(mat)
-Uprim=np.zeros(Iter)
+Uprim=np.zeros((mat-poros+1,Iter))
 
 #%%# Matriz de rigidez efectiva
 per1= (a0*Mtot)
@@ -441,8 +442,13 @@ for i in range (Iter):
     UVeldel1= UVel1+(a6*UAce1)+(a7*UAcedel1)
 
 #%%#Vectores que registran el desplzamiento de un nodo y de cada tiempo respectivamente
-    Uprim[i]=Udel1[A]
+    
+#%%#Vectores que registran el desplzamiento de un nodo y de cada tiempo respectivamente
+    for j in range(0,mat-poros):
+        Uprim[j,i]=Udel1[j+poros]
+    
     deltacum[i]=delt
+
 
 #%%#Iniicalizar nuevamente las variables para la siguiente iteracion
     U1=Udel1
@@ -461,12 +467,17 @@ for i in range(Iter):
     uprim.write("\n")    
 uprim.close()
 
-#%%#Algoritmo que grafica desplazamiento de un nodo Vs el tiempo
+
+
+#%%#Algoritmo que grafica los desplazamientos de cada nodo Vs el tiempo
+dx=0
 plt.figure()
 plt.grid(True)
-plt.grid(color = 'b', linewidth = 0.4)
-#ax = plt.axes(xlim=(0, 3), ylim=(-4,3))
-plt.plot(deltacum,Uprim)
+plt.grid(linewidth = 0.8)
+for j in range (0,mat-poros-1):
+    plt.plot(deltacum,(5*Uprim[j,:] + dx ), 'k',label="Desplazamientos")
+    dx=dx-0.05
 plt.xlabel('Tiempo',fontsize=15)
-plt.ylabel('Desplazamientos del nodo',fontsize=15)
+plt.ylabel('Desplazamientos',fontsize=15)
 plt.show()
+
