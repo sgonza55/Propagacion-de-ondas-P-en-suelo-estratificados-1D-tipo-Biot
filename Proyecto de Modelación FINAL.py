@@ -1,11 +1,11 @@
 #%%#Librerias importadas necesarias para el codigo
-#plt.gca().invert_yaxis()
 import numpy as np
 import matplotlib.pyplot as plt
 
 #%%#Al multplicar por el delta de tiempo, nos da el tiempo total del sistema
-Iter= 200 #int(input("Digite numero de iteraciones: "))
+Iter= 3000 #int(input("Digite numero de iteraciones: "))
 
+time=0.001
 #%%#Numero de estratos del sistema
 n = 6 #int(input("Digite numero de estratos: ")) 
 
@@ -16,7 +16,7 @@ if (n<ZoneElas):
     print ("No se puede usar el programa")
     
 #%%# Numero de divisiones
-div=3 #int(input("Digite en cuanto desea partir el estrato")) 
+div=12 #int(input("Digite en cuanto desea partir el estrato")) 
 
 #%%Número de nodos del suelo poroso
 poros = div*(n-ZoneElas)
@@ -39,6 +39,7 @@ Vpall=np.zeros(n)
 Ssall=np.zeros(n)
 eall=np.zeros(n)
 lall=np.zeros(n)
+kall=np.zeros(n)
 
 #%%#Iniciazion de las matrices locales de masa y rigidez locales
 MatMlocal = np.zeros((C,2,2))#Matriz de masa local
@@ -52,21 +53,23 @@ cont=0.0
 conta=0
 
 for i in range (n-ZoneElas):
-    Ss=2.7 #float(input("Digite peso especifico realtivo de los solidos: "))
-    e= 0.9 #float(input("Digite relacion de vacios: "))
-    Vp=100 #int(input("Digite velocidad de propagacion del estrato: "))
-    l=9 #int(input("Digite longitud del estrato:"))
+    Ss= 2.5 #float(input("Digite peso especifico realtivo de los solidos: "))
+    e= 0.7 #float(input("Digite relacion de vacios: "))
+    Vp= 50 #int(input("Digite velocidad de propagacion del estrato: "))
+    l= 9 #int(input("Digite longitud del estrato:"))
+    k= 0.17/(24*3600)#(float(input("Digite permeabilidad del estrato:")))
     Vpall[conta]=Vp
     Ssall[conta]=Ss
     eall[conta]=e
     lall[conta]=l
+    kall[conta]=k    
     conta=conta +1
 ele=l/div
     
 for i in range (ZoneElas):
-    Ss=2.7 #float(input("Digite peso especifico realtivo de los solidos: "))
-    e= 0.9 #float(input("Digite relacion de vacios: "))
-    Vp=100 #int(input("Digite velocidad de propagacion del estrato: "))
+    Ss= 2.5#float(input("Digite peso especifico realtivo de los solidos: "))
+    e= 0.7#float(input("Digite relacion de vacios: "))
+    Vp= 50 #int(input("Digite velocidad de propagacion del estrato: "))
     Vpall[conta]=Vp
     Ssall[conta]=Ss
     eall[conta]=e
@@ -80,6 +83,7 @@ for i in range (n):
         e=eall[i]
         Vp=Vpall[i]
         l=lall[i]
+        k=kall[i]
         GamaSat=PesoEspecificoAgua*((Ss+e)/(1+e))
         rho=GamaSat/g
         H=H+l
@@ -88,7 +92,7 @@ for i in range (n):
             mv=(1/(rho*(Vp**2)))
             krig=(1/(mv*lediv))
             coef=rho*lediv
-            ache=krig/(PesoEspecificoAgua*lediv)
+            ache=k/(PesoEspecificoAgua*lediv)
             for j in range (2):
                 for k in range (2):
                         if (j == k): 
@@ -155,7 +159,7 @@ for i in range (0,C):
         tempant=temp1
         l=l+1
 MatM[j+l-1,k+l-1]=MatMlocal[i,j,k]
-print ("Matriz de masa",MatM)
+#print ("Matriz de masa",MatM)
 
 #%%#Ensamlbe GLOBAL de la matriz de masa
 Mtot = np.zeros((mat,mat))
@@ -186,7 +190,7 @@ for i in range (A):
             if (j==C):
                 MatC[i,j]= delta
   
-print ("Matriz de amortiguamiento",MatC)
+#print ("Matriz de amortiguamiento",MatC)
 
 #%%Matriz Q
 MatQ=np.zeros((poros+1,poros+1))
@@ -371,7 +375,7 @@ else:
     print ("No se puede ejecutar la integracion, beta supera el rango")
 
 #Delta de tiempo del sistema (incremento constante del tiempo)
-delt=0.01
+delt=time
 
 #%%#Constantes de integracion
 a0= 1/(alfa*((delt)**2))
@@ -390,6 +394,8 @@ U1=np.zeros(mat)
 UVel1=np.zeros(mat)
 UAce1=np.zeros(mat)
 Uprim=np.zeros((mat-poros+1,Iter))
+Uporo=np.zeros((Iter))
+Uprim2=np.zeros((Iter))
 
 #%%# Matriz de rigidez efectiva
 per1= (a0*Mtot)
@@ -417,8 +423,7 @@ for i in range (Iter):
     alfa11 = ((np.pi*fc)**2) * ((delt-(z1/Vs)-Ts)**2)
     alfa12 = ((np.pi*fc)**2) * ((delt+(z1/Vs)-Ts)**2)
     y1= ((((2*alfa11)-1) * (np.exp(-alfa11))) + (((2*alfa12)-1) * (np.exp(-alfa12)))) * ( 1/(mvele*le))
-    
-    Vs=Vpall[ZoneElas-1]
+
     alfa21 = ((np.pi*fc)**2) * ((delt-(z2/Vs)-Ts)**2)
     alfa22 = ((np.pi*fc)**2) * ((delt+(z2/Vs)-Ts)**2)
     y2= ((((2*alfa21)-1) * (np.exp(-alfa21))) + (((2*alfa22)-1) * (np.exp(-alfa22)))) * (-1/(mvele*le))
@@ -442,13 +447,13 @@ for i in range (Iter):
     UVeldel1= UVel1+(a6*UAce1)+(a7*UAcedel1)
 
 #%%#Vectores que registran el desplzamiento de un nodo y de cada tiempo respectivamente
-    
-#%%#Vectores que registran el desplzamiento de un nodo y de cada tiempo respectivamente
     for j in range(0,mat-poros):
-        Uprim[j,i]=Udel1[j+poros]
+        Uprim[j,i]=Udel1[j+poros]#rojo
+     
+#    Uprim2[i]=Udel1[poros+5] #AZUL
+#    Uporo[i]=Udel1[poros+1] #NARANAJA
     
     deltacum[i]=delt
-
 
 #%%#Iniicalizar nuevamente las variables para la siguiente iteracion
     U1=Udel1
@@ -456,28 +461,32 @@ for i in range (Iter):
     UAce1=UAcedel1
     
 #%%#Incremento de tiempo
-    delt=delt + 0.01
+    delt=delt + time
  
 #%%#FIN DEL PROCESO DE FEM
 #------------------------------------------------------------------------------
 #%%#Algoritmo que guarda desplazamientos de un nodo en formato .txt
-uprim = open('uprim.txt', 'w')
-for i in range(Iter):
-    uprim.write(" %f %f " % (Uprim[i],deltacum[i]))
-    uprim.write("\n")    
-uprim.close()
+#uprim = open('uprim.txt', 'w')
+#for i in range(Iter):
+#    uprim.write(" %f %f " % (Uprim[i,j],deltacum[i]))
+#    uprim.write("\n")    
+#uprim.close()
 
-
-
-#%%#Algoritmo que grafica los desplazamientos de cada nodo Vs el tiempo
+#%%#Algoritmo que grafica desplazamiento de un nodo Vs el tiempo
 dx=0
 plt.figure()
 plt.grid(True)
 plt.grid(linewidth = 0.8)
+#ax = plt.axes(xlim=(0, 3), ylim=(-0.5,0.6))
+#plt.plot(deltacum,Uprim, 'r')
 for j in range (0,mat-poros-1):
     plt.plot(deltacum,(5*Uprim[j,:] + dx ), 'k',label="Desplazamientos")
     dx=dx-0.05
+#
+#plt.plot(deltacum,Uprim2)
+#plt.plot(deltacum,Uporo)
+plt.legend('DC','b')
 plt.xlabel('Tiempo',fontsize=15)
 plt.ylabel('Desplazamientos',fontsize=15)
+#plt.gca().invert_yaxis()
 plt.show()
-
